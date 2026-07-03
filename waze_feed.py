@@ -2,10 +2,9 @@ import os
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
-# Import the converter from the library
-from NepaliBStoAD import Converter
 import pytz
 import requests
+from nepali_datetime import date as nepali_date
 
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
@@ -50,14 +49,11 @@ def get_latest_waze_update():
             ad_year, ad_month, ad_day = map(int, ad_date_str.split("-"))
 
             try:
-                # Initialize the converter library
-                converter = Converter()
-                # Convert Gregorian (AD) to Nepali (BS)
-                bs_date = converter.ad_to_bs(ad_year, ad_month, ad_day)
+                # Convert Gregorian (AD) to Nepali (BS) using nepali_datetime
+                ad_date_obj = datetime(ad_year, ad_month, ad_day)
+                nepali_dt = nepali_date.from_gregorian_date(ad_date_obj.date())
                 # Formats to something like "2083-03-18"
-                nepali_bs_date = (
-                    f"{bs_date.year}-{bs_date.month:02d}-{bs_date.day:02d}"
-                )
+                nepali_bs_date = f"{nepali_dt.year}-{nepali_dt.month:02d}-{nepali_dt.day:02d}"
             except Exception as e:
                 print(f"Conversion failed: {e}")
                 nepali_bs_date = ad_date_str
