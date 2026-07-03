@@ -14,12 +14,12 @@ WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 def get_latest_waze_update():
     if not WEBHOOK_URL:
         print("Error: DISCORD_WEBHOOK_URL environment variable is missing.")
-        return
+        raise ValueError("DISCORD_WEBHOOK_URL is not set")
 
     response = requests.get(FEED_URL)
     if response.status_code != 200:
         print("Failed to fetch the feed")
-        return
+        raise Exception(f"Failed to fetch feed: {response.status_code}")
 
     namespaces = {"atom": "http://www.w3.org/2005/Atom"}
     root = ET.fromstring(response.content)
@@ -76,4 +76,8 @@ def get_latest_waze_update():
 
 
 if __name__ == "__main__":
-    get_latest_waze_update()
+    try:
+        get_latest_waze_update()
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        exit(1)

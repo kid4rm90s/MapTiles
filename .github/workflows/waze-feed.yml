@@ -26,4 +26,9 @@ jobs:
       - name: Run Waze Feed Script
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: python waze_feed.py
+        run: |
+          python waze_feed.py
+          if [ $? -ne 0 ]; then
+            echo "Script failed with exit code $?"
+            exit 1
+          fi
