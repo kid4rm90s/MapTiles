@@ -1,12 +1,13 @@
 import os
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
+# Import the converter from the library
+from NepaliBStoAD import Converter
 import pytz
 import requests
 
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
-
-# Read the webhook from environment variables safely
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 
@@ -28,24 +29,46 @@ def get_latest_waze_update():
         title = entry.find("atom:title", namespaces).text
         updated_raw = entry.find("atom:updated", namespaces).text
 
-        # Parse UTC time
+        # 1. Handle Timezones & Timestamps
         utc_time = datetime.strptime(updated_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
         utc_time = pytz.utc.localize(utc_time)
 
-        # Convert to Nepal Time
         nepal_tz = pytz.timezone("Asia/Kathmandu")
         nepal_time = utc_time.astimezone(nepal_tz)
-        formatted_nepal_time = nepal_time.strftime("%Y-%m-%d %I:%M:%S %p")
+        formatted_nepal_time = nepal_time.strftime("%I:%M:%S %p")
 
-        # Discord Dynamic Time formatting
         unix_timestamp = int(utc_time.timestamp())
-        discord_relative_time = f"<t:{unix_timestamp}:F> (<t:{unix_timestamp}:R>)"
+        discord_relative_time = f"<t:{unix_timestamp}:F>"
 
+        # 2. Extract the Map Tile Date from the Title
+        # Example string: "International map tiles were successfully updated to: 2026-07-02T05:55:18"
+        date_match = re.search(r"\d{4}-\d{2}-\d{2}", title)
+
+        nepali_bs_date = "Conversion Error"
+        if date_match:
+            ad_date_str = date_match.group(0)  # e.g., "2026-07-02"
+            ad_year, ad_month, ad_day = map(int, ad_date_str.split("-"))
+
+            try:
+                # Initialize the converter library
+                converter = Converter()
+                # Convert Gregorian (AD) to Nepali (BS)
+                bs_date = converter.ad_to_bs(ad_year, ad_month, ad_day)
+                # Formats to something like "2083-03-18"
+                nepali_bs_date = (
+                    f"{bs_date.year}-{bs_date.month:02d}-{bs_date.day:02d}"
+                )
+            except Exception as e:
+                print(f"Conversion failed: {e}")
+                nepali_bs_date = ad_date_str
+
+        # 3. Construct the Message Layout
         message = (
             f"**Waze Map Tile Update Status**\n"
             f"📌 **Status:** {title}\n"
+            f"📅 **Nepali Date (BS):** `{nepali_bs_date}`\n"
             f"🇳🇵 **Nepal Time (NST):** `{formatted_nepal_time}`\n"
-            f"🌐 **Your Local Time:** {discord_relative_time}"
+            f"🌐 **Dynamic Time:** {discord_relative_time}"
         )
 
         requests.post(WEBHOOK_URL, json={"content": message})
