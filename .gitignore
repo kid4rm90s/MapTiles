@@ -1,0 +1,12 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Test/diagnostic files (keep local only)
+test_feed.py
+test_complete.py
+extract_calendar.py
