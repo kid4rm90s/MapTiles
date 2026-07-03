@@ -166,6 +166,46 @@ def gregorian_to_nepali(ad_year, ad_month, ad_day):
         return None
 
 
+def to_nepali_digits(s: str) -> str:
+    """Convert Arabic digits (0-9) to Nepali digits (०-९)."""
+    arabic_to_nepali = str.maketrans("0123456789", "०१२३४५६७८९")
+    return s.translate(arabic_to_nepali)
+
+
+def translate_status(title: str) -> str:
+    """Translate English Waze status prefix to Nepali."""
+    prefix = "International map tiles were successfully updated to: "
+    suffix = "International map tiles were updated to: "
+    if title.startswith(prefix):
+        return title.replace(prefix, "अन्तर्राष्ट्रिय नक्सा टाइलहरू सफलतापूर्वक अद्यावधिक गरियो: ", 1)
+    elif title.startswith(suffix):
+        return title.replace(suffix, "अन्तर्राष्ट्रिय नक्सा टाइलहरू अद्यावधिक गरियो: ", 1)
+    return title
+
+
+def format_nepali_time(dt) -> str:
+    """Format time in Nepali with Nepali digits and AM/PM in Nepali."""
+    hour = dt.hour
+    minute = dt.minute
+    second = dt.second
+    
+    if hour == 0:
+        hour12 = 12
+        period = "राति"
+    elif hour < 12:
+        hour12 = hour
+        period = "विहान"
+    elif hour == 12:
+        hour12 = 12
+        period = "दिउँसो"
+    else:
+        hour12 = hour - 12
+        period = "साँझ"
+    
+    time_str = f"{hour12:02d}:{minute:02d}:{second:02d} {period}"
+    return to_nepali_digits(time_str)
+
+
 def get_latest_waze_update():
     if not WEBHOOK_URL:
         print("Error: DISCORD_WEBHOOK_URL environment variable is missing.")
@@ -190,12 +230,12 @@ def get_latest_waze_update():
 
         nepal_tz = pytz.timezone("Asia/Kathmandu")
         nepal_time = utc_time.astimezone(nepal_tz)
-        formatted_nepal_time = nepal_time.strftime("%I:%M:%S %p")
 
         unix_timestamp = int(utc_time.timestamp())
         discord_relative_time = f"<t:{unix_timestamp}:F>"
 
-        # 2. Extract the Map Tile Date from the Title
+        # 2. Translate status & extract date
+        nepali_title = translate_status(title)
         date_match = re.search(r"\d{4}-\d{2}-\d{2}", title)
 
         nepali_bs_date = "रूपान्तरण त्रुटि"
@@ -211,15 +251,17 @@ def get_latest_waze_update():
                 
                 if result:
                     bs_year, bs_month, bs_day = result
-                    nepali_bs_date = f"{bs_year}-{bs_month:02d}-{bs_day:02d}"
+                    bs_nums = f"{bs_year:04d}-{bs_month:02d}-{bs_day:02d}"
+                    nepali_bs_date = to_nepali_digits(bs_nums)
                 else:
                     nepali_bs_date = ad_date_str
 
         # 3. Construct the Message Layout (Nepali)
+        nepali_time_str = format_nepali_time(nepal_time)
         message = (
             f"**वेज नक्सा टाइल अद्यावधिक जानकारी**\n"
-            f"📌 **स्थिति:** {title}\n"
-            f"📅 **नेपाली समय (बि.सं.):** `{nepali_bs_date}` `{formatted_nepal_time}`\n"
+            f"📌 **स्थिति:** {nepali_title}\n"
+            f"📅 **नेपाली समय (बि.सं.):** `{nepali_bs_date}` `{nepali_time_str}`\n"
             f"🌐 **गतिशील समय:** {discord_relative_time}"
         )
 
