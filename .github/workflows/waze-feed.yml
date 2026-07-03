@@ -1,6 +1,6 @@
 name: Waze Feed Update
 
-# version 1.0.0
+# version 1.0.1
 on:
   schedule:
     # Run every hour
