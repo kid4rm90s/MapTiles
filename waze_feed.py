@@ -131,11 +131,17 @@ def gregorian_to_nepali(ad_year, ad_month, ad_day):
         # Add days to BS date
         while days_diff > 0:
             if bs_year < 2000 or bs_year > 2099:
+                print(f"Warning: Year {bs_year} out of supported range (2000-2099)")
                 break
             
             year_idx = bs_year - 2000
             if year_idx >= len(BS_MONTHS):
+                print(f"Warning: Year index {year_idx} out of range")
                 break
+            
+            if bs_month < 1 or bs_month > 12:
+                print(f"Error: Invalid month {bs_month}")
+                return None
             
             days_in_month = BS_MONTHS[year_idx][bs_month - 1]
             days_left = days_in_month - bs_day + 1
@@ -153,7 +159,9 @@ def gregorian_to_nepali(ad_year, ad_month, ad_day):
         
         return bs_year, bs_month, bs_day
     except Exception as e:
-        print(f"Conversion error: {e}")
+        print(f"Conversion error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -193,16 +201,27 @@ def get_latest_waze_update():
         nepali_bs_date = "Conversion Error"
         if date_match:
             ad_date_str = date_match.group(0)  # e.g., "2026-07-02"
-            ad_year, ad_month, ad_day = map(int, ad_date_str.split("-"))
-
-            # Convert Gregorian (AD) to Nepali (BS)
-            result = gregorian_to_nepali(ad_year, ad_month, ad_day)
-            if result:
-                bs_year, bs_month, bs_day = result
-                nepali_bs_date = f"{bs_year}-{bs_month:02d}-{bs_day:02d}"
-            else:
-                print(f"Conversion failed for date {ad_date_str}")
+            print(f"[LOG] Extracted AD date: {ad_date_str}", flush=True)
+            
+            try:
+                ad_year, ad_month, ad_day = map(int, ad_date_str.split("-"))
+                print(f"[LOG] Parsed values - Year: {ad_year}, Month: {ad_month}, Day: {ad_day}", flush=True)
+            except Exception as e:
+                print(f"[ERROR] Failed to parse date: {e}", flush=True)
                 nepali_bs_date = ad_date_str
+            else:
+                # Convert Gregorian (AD) to Nepali (BS)
+                print(f"[LOG] Calling gregorian_to_nepali({ad_year}, {ad_month}, {ad_day})", flush=True)
+                result = gregorian_to_nepali(ad_year, ad_month, ad_day)
+                print(f"[LOG] Conversion result: {result}", flush=True)
+                
+                if result:
+                    bs_year, bs_month, bs_day = result
+                    nepali_bs_date = f"{bs_year}-{bs_month:02d}-{bs_day:02d}"
+                    print(f"[LOG] Nepali date: {nepali_bs_date}", flush=True)
+                else:
+                    print(f"[ERROR] Conversion returned None for date {ad_date_str}", flush=True)
+                    nepali_bs_date = f"[ERROR: Conversion failed]"
 
         # 3. Construct the Message Layout
         message = (
