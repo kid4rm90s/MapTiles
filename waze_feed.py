@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import requests
 
-# version 1.0.2
+# version 1.0.3
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
@@ -259,9 +259,8 @@ def get_latest_waze_update():
         # 3. Construct the Message Layout (Nepali)
         nepali_time_str = format_nepali_time(nepal_time)
         message = (
-            f"**वेज नक्सा टाइल अद्यावधिक जानकारी**\n"
-            f"📌 **स्थिति:** {nepali_title}\n"
-            f"📅 **नेपाली समय (बि.सं.):** `{nepali_bs_date}` `{nepali_time_str}`\n"
+            f"📰 **{nepali_title}**\n"
+            f"📅 **नेपाली समय (वि.सं.):** `{nepali_bs_date}` `{nepali_time_str}`\n"
             f"🌐 **गतिशील समय:** {discord_relative_time}"
         )
 
