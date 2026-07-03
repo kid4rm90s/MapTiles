@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nepali-datetime requests pytz
+          pip install requests pytz
       
       - name: Run Waze Feed Script
         env:
