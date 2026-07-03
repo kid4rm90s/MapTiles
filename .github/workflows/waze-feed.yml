@@ -1,6 +1,5 @@
 name: Waze Feed Update
-
-# version 1.0.3
+# version 1.0.4
 on:
   schedule:
     # Run every hour
@@ -10,6 +9,8 @@ on:
 jobs:
   update-feed:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - uses: actions/checkout@v4
@@ -32,4 +33,17 @@ jobs:
           if [ $? -ne 0 ]; then
             echo "Script failed with exit code $?"
             exit 1
+          fi
+      
+      - name: Commit state file if updated
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add last_update.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Update last_update.txt [skip ci]"
+            git push
+            echo "State file committed and pushed."
+          else
+            echo "No change — state file already up to date."
           fi

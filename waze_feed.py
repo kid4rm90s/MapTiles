@@ -5,9 +5,10 @@ from datetime import datetime
 import pytz
 import requests
 
-# version 1.0.3
+# version 1.0.4
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+STATE_FILE = "last_update.txt"
 
 # Nepali calendar data (days per month for each BS year 2000-2099)
 # Source: NepaliBStoAD.js library (https://kid4rm90s.github.io/NepaliBStoAD/NepaliBStoAD.js)
@@ -224,6 +225,16 @@ def get_latest_waze_update():
         title = entry.find("atom:title", namespaces).text
         updated_raw = entry.find("atom:updated", namespaces).text
 
+        # 0. Deduplication: skip if same title as last run
+        last_title = None
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                last_title = f.read().strip()
+        
+        if last_title == title:
+            print(f"No new update — same as last run. Skipping Discord post.")
+            return
+        
         # 1. Handle Timezones & Timestamps
         utc_time = datetime.strptime(updated_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
         utc_time = pytz.utc.localize(utc_time)
@@ -266,6 +277,11 @@ def get_latest_waze_update():
 
         requests.post(WEBHOOK_URL, json={"content": message})
         print("Update sent to Discord successfully!")
+
+        # Save current title to prevent duplicate on next run
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            f.write(title)
+        print(f"State saved to {STATE_FILE}")
 
 
 if __name__ == "__main__":
