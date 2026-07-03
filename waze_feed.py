@@ -196,41 +196,31 @@ def get_latest_waze_update():
         discord_relative_time = f"<t:{unix_timestamp}:F>"
 
         # 2. Extract the Map Tile Date from the Title
-        # Example string: "International map tiles were successfully updated to: 2026-07-02T05:55:18"
         date_match = re.search(r"\d{4}-\d{2}-\d{2}", title)
 
-        nepali_bs_date = "Conversion Error"
+        nepali_bs_date = "रूपान्तरण त्रुटि"
         if date_match:
-            ad_date_str = date_match.group(0)  # e.g., "2026-07-02"
-            print(f"[LOG] Extracted AD date: {ad_date_str}", flush=True)
+            ad_date_str = date_match.group(0)
             
             try:
                 ad_year, ad_month, ad_day = map(int, ad_date_str.split("-"))
-                print(f"[LOG] Parsed values - Year: {ad_year}, Month: {ad_month}, Day: {ad_day}", flush=True)
-            except Exception as e:
-                print(f"[ERROR] Failed to parse date: {e}", flush=True)
+            except Exception:
                 nepali_bs_date = ad_date_str
             else:
-                # Convert Gregorian (AD) to Nepali (BS)
-                print(f"[LOG] Calling gregorian_to_nepali({ad_year}, {ad_month}, {ad_day})", flush=True)
                 result = gregorian_to_nepali(ad_year, ad_month, ad_day)
-                print(f"[LOG] Conversion result: {result}", flush=True)
                 
                 if result:
                     bs_year, bs_month, bs_day = result
                     nepali_bs_date = f"{bs_year}-{bs_month:02d}-{bs_day:02d}"
-                    print(f"[LOG] Nepali date: {nepali_bs_date}", flush=True)
                 else:
-                    print(f"[ERROR] Conversion returned None for date {ad_date_str}", flush=True)
-                    nepali_bs_date = f"[ERROR: Conversion failed]"
+                    nepali_bs_date = ad_date_str
 
-        # 3. Construct the Message Layout
+        # 3. Construct the Message Layout (Nepali)
         message = (
-            f"**Waze Map Tile Update Status**\n"
-            f"📌 **Status:** {title}\n"
-            f"📅 **Nepali Date (BS):** `{nepali_bs_date}`\n"
-            f"🇳🇵 **Nepal Time (NST):** `{formatted_nepal_time}`\n"
-            f"🌐 **Dynamic Time:** {discord_relative_time}"
+            f"**वेज नक्सा टाइल अद्यावधिक जानकारी**\n"
+            f"📌 **स्थिति:** {title}\n"
+            f"📅 **नेपाली समय (बि.सं.):** `{nepali_bs_date}` `{formatted_nepal_time}`\n"
+            f"🌐 **गतिशील समय:** {discord_relative_time}"
         )
 
         requests.post(WEBHOOK_URL, json={"content": message})
