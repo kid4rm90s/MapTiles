@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import requests
 
-# version 1.0.6
+# version 1.0.7
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 STATE_FILE = "last_update.txt"
@@ -235,18 +235,38 @@ def get_latest_waze_update():
             print(f"No new update — same as last run. Skipping Discord post.")
             return
         
-        # 1. Handle Timezones & Timestamps
-        utc_time = datetime.strptime(updated_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
-        utc_time = pytz.utc.localize(utc_time)
+        # 1. Translate status & extract full datetime from the title
+        #    (title contains the actual map tile publish timestamp, e.g.:
+        #     "International map tiles were successfully updated to: 2026-07-04T05:55:19.513371")
+        nepali_title = translate_status(title)
+        datetime_match = re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?", title)
 
-        nepal_tz = pytz.timezone("Asia/Kathmandu")
-        nepal_time = utc_time.astimezone(nepal_tz)
+        tile_dt_utc = None
+        if datetime_match:
+            raw_ts = datetime_match.group(0)
+            # Parse with or without fractional seconds
+            if "." in raw_ts:
+                tile_dt_utc = datetime.strptime(raw_ts, "%Y-%m-%dT%H:%M:%S.%f")
+            else:
+                tile_dt_utc = datetime.strptime(raw_ts, "%Y-%m-%dT%H:%M:%S")
+            tile_dt_utc = pytz.utc.localize(tile_dt_utc)
 
-        unix_timestamp = int(utc_time.timestamp())
+        # 2. Handle Timezones & Timestamps
+        if tile_dt_utc is not None:
+            nepal_tz = pytz.timezone("Asia/Kathmandu")
+            nepal_time = tile_dt_utc.astimezone(nepal_tz)
+            unix_timestamp = int(tile_dt_utc.timestamp())
+        else:
+            # Fallback: use feed's updated timestamp
+            utc_time = datetime.strptime(updated_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
+            utc_time = pytz.utc.localize(utc_time)
+            nepal_tz = pytz.timezone("Asia/Kathmandu")
+            nepal_time = utc_time.astimezone(nepal_tz)
+            unix_timestamp = int(utc_time.timestamp())
+
         discord_relative_time = f"<t:{unix_timestamp}:F>"
 
-        # 2. Translate status & extract date
-        nepali_title = translate_status(title)
+        # 3. Extract date & convert to BS
         date_match = re.search(r"\d{4}-\d{2}-\d{2}", title)
 
         nepali_bs_date = "रूपान्तरण त्रुटि"
@@ -267,7 +287,7 @@ def get_latest_waze_update():
                 else:
                     nepali_bs_date = ad_date_str
 
-        # 3. Construct the Message Layout (Nepali)
+        # 4. Construct the Message Layout (Nepali)
         nepali_time_str = format_nepali_time(nepal_time)
         message = (
             f"📰 **{nepali_title}**\n"
