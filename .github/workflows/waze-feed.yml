@@ -1,9 +1,11 @@
 name: Waze Feed Update
-# version 1.0.5
+# version 1.0.6
 on:
   schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
     # Run every hour
-    - cron: '0 * * * *'
+    # - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:

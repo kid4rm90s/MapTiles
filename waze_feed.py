@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import requests
 
-# version 1.0.5
+# version 1.0.6
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 STATE_FILE = "last_update.txt"
