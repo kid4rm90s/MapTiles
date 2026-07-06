@@ -34,6 +34,7 @@ jobs:
       - name: Run Waze Feed Script
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL_WAZENEPAL: ${{ secrets.DISCORD_WEBHOOK_URL_WAZENEPAL }}
         run: |
           python waze_feed.py
           if [ $? -ne 0 ]; then

@@ -5,9 +5,15 @@ from datetime import datetime
 import pytz
 import requests
 
-# version 1.0.7
+# version 1.0.8
 FEED_URL = "https://storage.googleapis.com/waze-tile-build-public/release-history/intl-feed.xml"
-WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+WEBHOOK_URLS = [os.environ.get("DISCORD_WEBHOOK_URL"),
+                os.environ.get("DISCORD_WEBHOOK_URL_WAZENEPAL"),
+                ]
+
+# Filter out any that are None/empty
+WEBHOOK_URLS = [url for url in WEBHOOK_URLS if url]
+
 STATE_FILE = "last_update.txt"
 
 # Nepali calendar data (days per month for each BS year 2000-2099)
@@ -208,9 +214,9 @@ def format_nepali_time(dt) -> str:
 
 
 def get_latest_waze_update():
-    if not WEBHOOK_URL:
-        print("Error: DISCORD_WEBHOOK_URL environment variable is missing.")
-        raise ValueError("DISCORD_WEBHOOK_URL is not set")
+    if not WEBHOOK_URLS:
+        print("Error: No DISCORD_WEBHOOK_URL environment variable are set.")
+        raise ValueError("No DISCORD_WEBHOOK_URLs are confugured")
 
     response = requests.get(FEED_URL)
     if response.status_code != 200:
@@ -295,8 +301,25 @@ def get_latest_waze_update():
             f"🌐 **गतिशील समय:** {discord_relative_time}"
         )
 
-        requests.post(WEBHOOK_URL, json={"content": message})
-        print("Update sent to Discord successfully!")
+# This is disabled for now, since it was used for testing and for only one webhook. The new code supports multiple webhooks.
+       # requests.post(WEBHOOK_URL, json={"content": message})
+       # print("Update sent to Discord successfully!")
+        success_count = 0
+        for url in WEBHOOK_URLS:
+            try:
+                response = requests.post(url, json={"content": message})
+                if response.status_code == 204 or response.status_code == 200:
+                    success_count += 1
+                    print(f"Update sent to webhook {url[:30]}... successfully!")
+                else:
+                    print(f"Failed to send to webhook {url[:30]}... (HTTP {response.status_code})")
+            except Exception as e:
+                print(f"Error sending update to webhook {url[:30]}... Error: {e}")
+                
+        if success_count == 0:
+            print("Warning: Could not send to any webhook!")
+        else:
+            print(f"Update sent to {success_count}/{len(WEBHOOK_URLS)} webhooks successfully!")
 
         # Save current title to prevent duplicate on next run
         with open(STATE_FILE, "w", encoding="utf-8") as f:
