@@ -2,10 +2,12 @@ name: Waze Feed Update
 # version 1.0.8
 on:
   schedule:
-    # Run every 30 minutes
-    - cron: '*/30 * * * *'
-    # Run every hour
-    # - cron: '0 * * * *'
+    # 30-min interval between 8:00 AM - 3:00 PM MYT (UTC+8)
+    # 8:00 AM MYT = 00:00 UTC | 3:00 PM MYT = 07:00 UTC
+    - cron: '*/30 0-6 * * *'
+    # 60-min interval outside that window (3:00 PM - 8:00 AM MYT)
+    # 3:00 PM MYT = 07:00 UTC | 8:00 AM MYT = 00:00 UTC
+    - cron: '0 7-23 * * *'
   workflow_dispatch:
 
 concurrency:
